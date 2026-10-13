@@ -52,7 +52,6 @@
 #include "stack/include/a2dp_vendor_aptx.h"
 #include "stack/include/a2dp_vendor_aptx_hd.h"
 #include "stack/include/a2dp_vendor_ldac.h"
-#include "stack/include/a2dp_vendor_lhdcv3.h"
 #include "stack/include/a2dp_vendor_lhdcv5.h"
 #include "stack/include/a2dp_vendor_opus.h"
 #endif
@@ -222,9 +221,6 @@ A2dpCodecConfig* A2dpCodecConfig::createCodec(btav_a2dp_codec_index_t codec_inde
       break;
     case BTAV_A2DP_CODEC_INDEX_SOURCE_LHDCV5:
       codec_config = new A2dpCodecConfigLhdcV5Source(codec_priority);
-      break;
-    case BTAV_A2DP_CODEC_INDEX_SOURCE_LHDCV3:
-      codec_config = new A2dpCodecConfigLhdcV3Source(codec_priority);
       break;
 #endif
     case BTAV_A2DP_CODEC_INDEX_MAX:
@@ -683,9 +679,11 @@ bool A2dpCodecs::init() {
       log::info("OPUS codec disabled, updated priority to {}", codec_priority);
     }
 
-    if (!com_android_bluetooth_flags_lhdc_codec_support() &&
-        (codec_index == BTAV_A2DP_CODEC_INDEX_SOURCE_LHDCV5 ||
-         codec_index == BTAV_A2DP_CODEC_INDEX_SOURCE_LHDCV3)) {
+    // No Qualcomm SoC advertises LHDC in the split A2DP feature mask (see
+    // BTM_SPLIT_A2DP_SOURCE_* in btm_vendor_types.h) and PAL has no software encoder to fall
+    // back on, so once LHDCv5 is negotiated configure_a2dp_encoder_format() rejects it and
+    // every pal_stream_start() fails with -EINVAL, taking all playback down with it.
+    if (codec_index == BTAV_A2DP_CODEC_INDEX_SOURCE_LHDCV5) {
       codec_priority = BTAV_A2DP_CODEC_PRIORITY_DISABLED;
       log::info("LHDCv5 codec disabled");
     }
@@ -1221,8 +1219,6 @@ const char* A2DP_CodecName(const uint8_t* p_codec_info) {
       return "Opus";
     case CodecId::LHDCV5:
       return "LHDCv5";
-    case CodecId::LHDCV3:
-      return "LHDC V3";
     default:
       return "(unknown codec)";
   }
@@ -1277,8 +1273,6 @@ bool A2DP_CodecEquals(const uint8_t* p_codec_info_a, const uint8_t* p_codec_info
       return A2DP_VendorCodecEqualsOpus(p_codec_info_a, p_codec_info_b);
     case bluetooth::a2dp::CodecId::LHDCV5:
       return A2DP_VendorCodecEqualsLhdcV5(p_codec_info_a, p_codec_info_b);
-    case bluetooth::a2dp::CodecId::LHDCV3:
-      return A2DP_VendorCodecEqualsLhdcV3(p_codec_info_a, p_codec_info_b);
 #endif
     default:
       break;
@@ -1311,8 +1305,6 @@ int A2DP_GetTrackSampleRate(const uint8_t* p_codec_info) {
       return A2DP_VendorGetTrackSampleRateOpus(p_codec_info);
     case bluetooth::a2dp::CodecId::LHDCV5:
       return A2DP_VendorGetTrackSampleRateLhdcV5(p_codec_info);
-    case bluetooth::a2dp::CodecId::LHDCV3:
-      return A2DP_VendorGetTrackSampleRateLhdcV3(p_codec_info);
 #endif
     default:
       break;
@@ -1345,8 +1337,6 @@ int A2DP_GetTrackBitsPerSample(const uint8_t* p_codec_info) {
       return A2DP_VendorGetTrackBitsPerSampleOpus(p_codec_info);
     case bluetooth::a2dp::CodecId::LHDCV5:
       return A2DP_VendorGetTrackBitsPerSampleLhdcV5(p_codec_info);
-    case bluetooth::a2dp::CodecId::LHDCV3:
-      return A2DP_VendorGetTrackBitsPerSampleLhdcV3(p_codec_info);
 #endif
     default:
       break;
@@ -1379,8 +1369,6 @@ int A2DP_GetTrackChannelCount(const uint8_t* p_codec_info) {
       return A2DP_VendorGetTrackChannelCountOpus(p_codec_info);
     case bluetooth::a2dp::CodecId::LHDCV5:
       return A2DP_VendorGetTrackChannelCountLhdcV5(p_codec_info);
-    case bluetooth::a2dp::CodecId::LHDCV3:
-      return A2DP_VendorGetTrackChannelCountLhdcV3(p_codec_info);
 #endif
     default:
       break;
@@ -1434,8 +1422,6 @@ bool A2DP_GetPacketTimestamp(const uint8_t* p_codec_info, const uint8_t* p_data,
       return A2DP_VendorGetPacketTimestampOpus(p_codec_info, p_data, p_timestamp);
     case bluetooth::a2dp::CodecId::LHDCV5:
       return A2DP_VendorGetPacketTimestampLhdcV5(p_codec_info, p_data, p_timestamp);
-    case bluetooth::a2dp::CodecId::LHDCV3:
-      return A2DP_VendorGetPacketTimestampLhdcV3(p_codec_info, p_data, p_timestamp);
 #endif
     default:
       break;
@@ -1613,8 +1599,6 @@ const char* A2DP_CodecIndexStr(btav_a2dp_codec_index_t codec_index) {
       return "Opus SINK";
     case BTAV_A2DP_CODEC_INDEX_SOURCE_LHDCV5:
       return "LHDCv5";
-    case BTAV_A2DP_CODEC_INDEX_SOURCE_LHDCV3:
-      return "LHDC V3";
     case BTAV_A2DP_CODEC_INDEX_SOURCE_EXT_MIN:
     case BTAV_A2DP_CODEC_INDEX_SINK_EXT_MIN:
     case BTAV_A2DP_CODEC_INDEX_MAX:

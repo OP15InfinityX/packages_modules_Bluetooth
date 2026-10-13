@@ -36,8 +36,6 @@ members = [
 ]
 
 exclude = [
-  "system/audio/codecs/lhdcv3",
-  "system/audio/codecs/lhdcv3-format",
   "system/audio/codecs/lhdcv5",
 ]
 

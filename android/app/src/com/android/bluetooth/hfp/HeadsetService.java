@@ -269,7 +269,7 @@ public class HeadsetService extends ConnectableProfile {
                 new VolumeInfo.Builder(AudioManager.STREAM_VOICE_CALL)
                         .setMaxVolumeIndex(
                                 audioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL))
-                        .setMinVolumeIndex(1)
+                        .setMinVolumeIndex(0)
                         .build();
         VolumeInfo volumeInfoAssistant =
                 new VolumeInfo.Builder(AudioManager.STREAM_ASSISTANT)
